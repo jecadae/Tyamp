@@ -7,10 +7,10 @@ public class ExpressionHandler
     public TreeNode BuildExpressionTree(string expression)
     {
         // Регулярное выражение для поиска переменных и констант
-        string pattern = @"[A-Za-z_][A-Za-z_0-9]*|[0-9]+(?:\.[0-9]*)?(?:[eE][+-]?[0-9]+)?";
-        Regex regex = new Regex(pattern);
+        var pattern = @"[A-Za-z_][A-Za-z_0-9]*|[0-9]+(?:\.[0-9]*)?(?:[eE][+-]?[0-9]+)?";
+        var regex = new Regex(pattern);
 
-        Queue<TreeNode> queue = new Queue<TreeNode>();
+        var queue = new Queue<TreeNode>();
 
         MatchEvaluator matchEvaluator = ((match) =>
         {
@@ -33,9 +33,9 @@ public class ExpressionHandler
         regex = new Regex(pattern);
 
         MatchCollection matches = regex.Matches(expression);
-        var success1 = queue.TryDequeue(out var test);
+        var success = queue.TryDequeue(out var test);
         var matchesList = matches.ToList();
-        if (!success1)
+        if (!success)
         {
             throw new ArgumentException("Неправильное выражение");
         }
@@ -63,24 +63,28 @@ public class ExpressionHandler
             return treeNode;
         }
     }
-
-
+    
     public Dictionary<string, VariableInfo> GenerateVariableTable(TreeNode tree)
     {
-        Dictionary<string, VariableInfo> variableTable = new Dictionary<string, VariableInfo>();
-        int variableNumber = 1;
+        var variableTable = new Dictionary<string, VariableInfo>();
+        var variableNumber = 1;
 
         TraverseTree(tree, (node) =>
         {
-            if (node.IsVariable && !node.IsOperator) // Проверка на то, что значение не является оператором
+            if (node.IsConstant)
             {
-                string variableName = node.Value;
+                variableTable.Add(node.Value, new VariableInfo(variableNumber++, "Константа с плавающей точкой"));
+            }
+            if(node.IsVariable) // Проверка на то, что значение не является оператором
+            {
+                var variableName = node.Value;
 
                 if (!variableTable.ContainsKey(variableName))
                 {
-                    variableTable.Add(variableName, new VariableInfo(variableNumber++, "Переменная"));
+                    variableTable.Add(variableName, new VariableInfo(variableNumber++, "Переменная с плавающей точкой"));
                 }
             }
+
         });
 
         return variableTable;
@@ -116,8 +120,6 @@ public class ExpressionHandler
             }
         });
 
-        code += "RETURN" + Environment.NewLine;
-
         return code;
     }
 
@@ -136,7 +138,7 @@ public class ExpressionHandler
 
     public string GenerateOptimizedCode(TreeNode tree)
     {
-        // Оптимизация кода здесь
+        // Оптимизация кода будет здесь
 
         return GenerateUnoptimizedCode(tree);
     }

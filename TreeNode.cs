@@ -1,6 +1,5 @@
 ﻿namespace ConsoleApp1;
 
-
 public class TreeNode
 {
     public string Value { get; set; }
