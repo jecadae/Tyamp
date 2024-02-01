@@ -4,144 +4,220 @@ namespace ConsoleApp1;
 
 public class ExpressionHandler
 {
-    public TreeNode BuildExpressionTree(string expression)
+    private readonly string _expression;
+
+    private bool _correctForSigns;
+
+    private bool _correctForParenthesis;
+
+    public ExpressionHandler(string expression)
     {
-        // Регулярное выражение для поиска переменных и констант
-        var pattern = @"[A-Za-z_][A-Za-z_0-9]*|[0-9]+(?:\.[0-9]*)?(?:[eE][+-]?[0-9]+)?";
+        _expression = expression;
+    }
+
+    /// <summary>
+    ///     Проверка на подряд идущие знаки, или открытые знаки,
+    /// </summary>
+    /// <returns> False - если выражение некорректно, true если корректно</returns>
+    public bool CheckForSigns()
+    {
+        var pattern = RegexpLibrary.CheckForSigns;
+
+        var isMatch = !Regex.IsMatch(_expression, pattern);
+
+        _correctForSigns = isMatch;
+
+        return isMatch;
+    }
+
+    /// <summary>
+    ///     Проверить есть ли в выражении, незакртые скобки.
+    /// </summary>
+    /// <returns>False - есть,True - нет </returns>
+    public bool CheckForParenthesis()
+    {
+        var pattern = RegexpLibrary.CheckForParenthesis;
+
+        var isMatch = Regex.IsMatch(_expression, pattern);
+
+        _correctForParenthesis = isMatch;
+
+        return isMatch;
+    }
+
+    /// <summary>
+    ///     Выполнить все проверки.
+    /// </summary>
+    /// <returns>True - если проверки пройдены, в противном случае false</returns>
+    private bool _complexCheck()
+    {
+        var a = false;
+        var b = false;
+        if (!_correctForSigns) a = CheckForSigns();
+
+        if (!_correctForParenthesis) b = CheckForParenthesis();
+
+        return a && b;
+    }
+
+    /// <summary>
+    ///     Составить дерево выражений.
+    /// </summary>
+    /// <returns>Деревео выражений, или исключение если оно неверное.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public TreeNode BuildExpressionTree()
+    {
+        if (!_complexCheck()) throw new ArgumentException();
+
+        var pattern = RegexpLibrary.CollectVariable;
         var regex = new Regex(pattern);
 
-        var queue = new Queue<TreeNode>();
+        var stack = new Stack<TreeNode>();
 
-        MatchEvaluator matchEvaluator = ((match) =>
+        MatchEvaluator matchEvaluator = match =>
         {
-            if (double.TryParse(match.Value, out double constant))
-            {
-                queue.Enqueue(new TreeNode(constant));
-            }
-            else
-            {
-                queue.Enqueue(new TreeNode(match.Value));
-            }
+            stack.Push(double.TryParse(match.Value, out var constant)
+                ? new TreeNode(constant)
+                : new TreeNode(match.Value));
 
             return "";
-        });
+        };
 
-        expression = regex.Replace(expression, matchEvaluator);
+        var expression = regex.Replace(_expression, matchEvaluator);
 
         // Регулярное выражение для поиска операторов и скобок
-        pattern = @"(\+|\*|\(|\))";
+        pattern = RegexpLibrary.CollectSigns;
         regex = new Regex(pattern);
-
-        MatchCollection matches = regex.Matches(expression);
-        var success = queue.TryDequeue(out var test);
-        var matchesList = matches.ToList();
-        if (!success)
-        {
-            throw new ArgumentException("Неправильное выражение");
-        }
-
-        var tree = new TreeNode("=", GetTree(matchesList, queue), new TreeNode(test!.Value));
-
+        var matches = regex.Matches(expression);
+        
+        var operations = ExpandExpression(expression);
+        var tree = BuildExpressionTree(operations, stack, matches);
         return tree;
     }
 
-    private TreeNode GetTree(List<Match> matches, Queue<TreeNode> queue)
+    private TreeNode BuildExpressionTree(string operations, Stack<TreeNode> arguments, MatchCollection matchCollection)
     {
-        var match = matches.First();
-        if (matches.Skip(1).ToList().Count == 0)
-        {
-            var right = queue.Dequeue();
-            var left = queue.Dequeue();
-            return new TreeNode(value: match.Value, right: right, left: left);
-        }
-        else
-        {
-            var newMatches = matches.Skip(1).ToList();
-            var left = queue.Dequeue();
-            var sign = matches.First().Value;
-            var treeNode = new TreeNode(sign, left: left, right: GetTree(newMatches, queue));
-            return treeNode;
-        }
+        var last = arguments.Last();
+        arguments = GetFirst(arguments);
+        operations = operations.Substring(1);
+        var root = new TreeNode("=", GetTree(operations, arguments), last);
+        return root;
     }
-    
+
+    private TreeNode? GetTree(string operations, Stack<TreeNode> stack)
+    {
+        if (operations.Length > 0)
+        {
+            var operation = operations.Last().ToString();
+            operations = operations.Remove(operations.Length - 1);
+            var left = stack.Pop();
+            if (left.Value == "q") Console.WriteLine("aaa");
+
+            var node = new TreeNode(operation)
+            {
+                Left = left,
+                Right = GetTree(operations, stack)
+            };
+            return node;
+        }
+
+        if (stack.Count == 1)
+            return stack.Pop();
+        return null;
+    }
+
+    private string ExpandExpression(string expression)
+    {
+        // Удаление пробелов из выражения
+        expression = expression.Replace(" ", "");
+
+        // Создание словаря приоритетов операций
+        var precedence = new Dictionary<char, int>
+        {
+            ['+'] = 1,
+            ['*'] = 2
+        };
+
+        var output = "";
+        var operators = new Stack<char>();
+
+        foreach (var c in expression)
+            switch (c)
+            {
+                case '(':
+                    operators.Push(c);
+                    break;
+                case ')':
+                {
+                    while (operators.Count > 0 && operators.Peek() != '(') output += operators.Pop();
+
+                    operators.Pop();
+                    break;
+                }
+                default:
+                {
+                    if (IsOperator(c))
+                    {
+                        while (operators.Count > 0 && operators.Peek() != '(' && precedence[c] <= precedence[operators.Peek()])
+                            output += operators.Pop();
+
+                        operators.Push(c);
+                    }
+                    else
+                    {
+                        output += c;
+                    }
+
+                    break;
+                }
+            }
+
+        while (operators.Count > 0) output += operators.Pop();
+
+        return output;
+    }
+
+    private Stack<TreeNode> GetFirst(Stack<TreeNode> stack)
+    {
+        var tempStack = new Stack<TreeNode>();
+        var count = stack.Count;
+        for (var i = 1; i < count; i++) tempStack.Push(stack.Pop());
+        stack.Pop();
+        while (tempStack.Count > 0) stack.Push(tempStack.Pop());
+        return stack;
+    }
+
+    private bool IsOperator(char c)
+    {
+        return c is '+' or '*';
+    }
+
+
     public Dictionary<string, VariableInfo> GenerateVariableTable(TreeNode tree)
     {
         var variableTable = new Dictionary<string, VariableInfo>();
         var variableNumber = 1;
 
-        TraverseTree(tree, (node) =>
+        CodeGenerator.TraverseTree(tree, node =>
         {
             if (node.IsConstant)
             {
-                variableTable.Add(node.Value, new VariableInfo(variableNumber++, "Константа с плавающей точкой"));
+                variableTable.Add(node.Value,
+                    int.TryParse(node.Value, out var canCovert)
+                        ? new VariableInfo(variableNumber++, "Целочисленное значение")
+                        : new VariableInfo(variableNumber++, "Константа с плавающей точкой"));
             }
-            if(node.IsVariable) // Проверка на то, что значение не является оператором
+
+            if (node.IsVariable) // Проверка на то, что значение не является оператором
             {
                 var variableName = node.Value;
 
                 if (!variableTable.ContainsKey(variableName))
-                {
-                    variableTable.Add(variableName, new VariableInfo(variableNumber++, "Переменная с плавающей точкой"));
-                }
+                    variableTable.Add(variableName,
+                        new VariableInfo(variableNumber++, "Переменная с плавающей точкой"));
             }
-
         });
 
         return variableTable;
     }
-
-    private void TraverseTree(TreeNode? node, Action<TreeNode> action)
-    {
-        if (node != null)
-        {
-            TraverseTree(node.Left, action);
-            action(node);
-            TraverseTree(node.Right, action);
-        }
-    }
-
-   public string GenerateUnoptimizedCode(TreeNode tree)
-    {
-        string code = "";
-
-        TraverseTree(tree, (node) =>
-        {
-            if (node.IsVariable)
-            {
-                code += $"LOAD {node.Value}" + Environment.NewLine;
-            }
-            else if (node.IsConstant)
-            {
-                code += $"PUSH {node.Value}" + Environment.NewLine;
-            }
-            else
-            {
-                code += GenerateOperatorCode(node.Value);
-            }
-        });
-
-        return code;
-    }
-
-    private string GenerateOperatorCode(string symbol)
-    {
-        switch (symbol)
-        {
-            case "+":
-                return "ADD" + Environment.NewLine;
-            case "*":
-                return "MULTIPLY" + Environment.NewLine;
-            default:
-                return "";
-        }
-    }
-
-    public string GenerateOptimizedCode(TreeNode tree)
-    {
-        // Оптимизация кода будет здесь
-
-        return GenerateUnoptimizedCode(tree);
-    }
 }
-
-

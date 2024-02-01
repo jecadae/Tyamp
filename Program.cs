@@ -1,20 +1,21 @@
-﻿using ConsoleApp1;
+﻿using System.Text.RegularExpressions;
+using ConsoleApp1;
 
 //Console.WriteLine("Введите выражение:");
-var expression = "qwe = q * (1 + fg * asd + 5)) * 23"; //Console.ReadLine()!;
-var expressionHandler = new ExpressionHandler();
+var expression = "qwe = q + (2 * d) + 3,3233";
+var expressionHandler = new ExpressionHandler(expression);
 // Построение бинарного дерева
 try
 {
-    var tree = expressionHandler.BuildExpressionTree(expression);
+    var tree = expressionHandler.BuildExpressionTree();
     
     // Генерация таблицы имен
     var variableTable = expressionHandler.GenerateVariableTable(tree);
 
     // Генерация неоптимизированного кода
-    var unoptimizedCode = expressionHandler.GenerateUnoptimizedCode(tree);
+    var unoptimizedCode = CodeGenerator.GenerateUnoptimizedCode(tree.Right!);
     
-    //var optimizedCode = expressionHandler.GenerateOptimizedCode(tree);
+    var optimizedCode = CodeGenerator.GenerateOptimizedCode(tree);
 
     // Вывод результатов
     Console.WriteLine("Таблица имен:");
@@ -26,11 +27,13 @@ try
 
     Console.WriteLine("Неоптимизированный код:");
     Console.WriteLine(unoptimizedCode);
+    Console.WriteLine("Оптимизированный код:");
+    Console.WriteLine(optimizedCode);
     
 }
 catch (Exception e) 
 {
-    throw new ArgumentException("Неправильно ввдено выражение.");
+    Console.WriteLine("Неправильно ввдено выражение.");
 }
 
 Console.ReadKey();
