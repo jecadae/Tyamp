@@ -97,6 +97,11 @@ public class ExpressionHandler
 
     private TreeNode BuildExpressionTree(string operations, Stack<TreeNode> arguments, MatchCollection matchCollection)
     {
+        if(operations.Length + 1 < arguments.Count)
+        {
+            throw new ArgumentException();
+        }
+
         var last = arguments.Last();
         arguments = GetFirst(arguments);
         operations = operations.Substring(1);

@@ -6,7 +6,7 @@ public static class RegexpLibrary
     /// <summary>
     /// Проверяет на то стоят ли несколько знаков подряд или есть открытый знак.
     /// </summary>
-    public static string CheckForSigns { get; } = @"(?:\s*[+*]\s*){2,}|(?:\(\s*[+*]\s*\)){2,}|[+*]\s*$";
+    public static string CheckForSigns { get; } = @"(?:\s*[+*]\s*){2,}|(?:\(\s*[+*]\s*\)){2,}|[+*]\s*$|\(\s*\)";
 
     /// <summary>
     /// Собрать все знаки из выражения.

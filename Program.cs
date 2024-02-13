@@ -2,7 +2,7 @@
 using ConsoleApp1;
 
 //Console.WriteLine("Введите выражение:");
-var expression = "qwe = q + (2 * d) + 3,3233";
+var expression = "x = (a+b)*c+3*(2+1)";
 var expressionHandler = new ExpressionHandler(expression);
 // Построение бинарного дерева
 try
