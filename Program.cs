@@ -2,7 +2,7 @@
 using ConsoleApp1;
 
 //Console.WriteLine("Введите выражение:");
-var expression = "x = (a+b)*c+3*(2+1)";
+var expression = "COST = (PRICE+TAX)* 98";
 var expressionHandler = new ExpressionHandler(expression);
 // Построение бинарного дерева
 try
@@ -14,7 +14,7 @@ try
 
     // Генерация неоптимизированного кода
     var unoptimizedCode = CodeGenerator.GenerateUnoptimizedCode(tree.Right!);
-    
+    var unopmiz = NewCodeGenerator.GenerateUnOptimaizeCode(tree);
     var optimizedCode = CodeGenerator.GenerateOptimizedCode(tree);
 
     // Вывод результатов
