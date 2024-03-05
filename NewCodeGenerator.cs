@@ -12,7 +12,6 @@ public static class NewCodeGenerator
     {
         var tempNode = treeNode.Right;
         var i = 0;
-        var temp
         while (tempNode.Left != null)
         {
             i++;

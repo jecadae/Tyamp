@@ -26,10 +26,12 @@ try
     }
 
     Console.WriteLine("Неоптимизированный код:");
-    Console.WriteLine(unoptimizedCode);
-    Console.WriteLine("Оптимизированный код:");
-    Console.WriteLine(optimizedCode);
-    
+    CodeGenerator1 a = new CodeGenerator1();
+    Console.WriteLine(a.GenerateCode(tree));
+    // Console.WriteLine(unoptimizedCode);
+    // Console.WriteLine("Оптимизированный код:");
+    // Console.WriteLine(optimizedCode);
+
 }
 catch (Exception e) 
 {
