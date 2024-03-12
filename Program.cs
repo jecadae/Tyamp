@@ -24,10 +24,10 @@ try
         Console.WriteLine(
             $"Номер: {variable.Value.Number}, Идентификатор: {variable.Key}, Тип данных: {variable.Value.DataType}");
     }
-
-    Console.WriteLine("Неоптимизированный код:");
     CodeGenerator1 a = new CodeGenerator1();
-    Console.WriteLine(a.GenerateCode(tree));
+    var str = a.GenerateCode(tree);
+    Console.WriteLine("Оптимизированный код:");
+    Console.WriteLine(str);
     // Console.WriteLine(unoptimizedCode);
     // Console.WriteLine("Оптимизированный код:");
     // Console.WriteLine(optimizedCode);

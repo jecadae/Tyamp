@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ConsoleApp1;
 
@@ -6,12 +7,14 @@ public class CodeGenerator1
 {
     private readonly StringBuilder _builder;
     private int _variableCounter;
-    private List<int> order;
+    private List<int> _order;
+    private List<string> _variable;
     public CodeGenerator1()
     {
         _builder = new StringBuilder();
-        _variableCounter = 1;
-        order = new List<int>();
+        _variableCounter = 0;
+        _order = new List<int>();
+        _variable = new List<string>();
     }
     public void Visit(TreeNode node)
     {
@@ -31,6 +34,8 @@ public class CodeGenerator1
 
     private void GenerateConstant(TreeNode node)
     {
+        _variable.Add(node.Value);
+        _variableCounter++;
         _builder.AppendLine($"LOAD {node.Value}");
     }
 
@@ -38,8 +43,9 @@ public class CodeGenerator1
     {
         if (node.Left == null && node.Right == null)
         {
-            order.Add(_variableCounter);
-            string tempVariable = $"${_variableCounter++}";
+            _variable.Add(node.Value);
+            _order.Add(_variableCounter);
+            string tempVariable = $"{_variableCounter++}";
             _builder.AppendLine($"STORE {tempVariable}");
             _builder.AppendLine($"LOAD {node.Value}");
         }
@@ -57,9 +63,8 @@ public class CodeGenerator1
         {
             Visit(node.Left);
             Visit(node.Right);
-            string tempVariable = $"${_variableCounter}";
-            string rightVariable = order.First().ToString();
-            order.RemoveAt(0);
+            string rightVariable = _order.Last().ToString();
+            _order.RemoveAt(_order.Count-1);
             switch (node.Value)
             {
                 case "+":
@@ -71,10 +76,28 @@ public class CodeGenerator1
             }
         }
     }
-
     public string GenerateCode(TreeNode root)
     {
         Visit(root);
-        return _builder.ToString();
+        Console.WriteLine("Неоптимизированный код:");
+        Console.WriteLine(_builder.ToString());
+        var stroke = _builder.ToString();
+        foreach (var variable in _variable)
+        {
+            string patt = $@"LOAD {variable}\r\nSTORE (\d+)";
+
+            Regex regex = new Regex(patt);
+
+            var matches = regex.Matches(stroke).ToList().SelectMany(match => match.Groups.Values).ToList();
+            var index = matches.LastOrDefault()?.Value ?? _variableCounter.ToString();
+            if (stroke.Split(variable).Length - 1 == 1)
+            {
+                string pattern = $@"LOAD {variable}\r\nSTORE (\d+)\r\n";
+                stroke = Regex.Replace(stroke, pattern, "");
+                stroke = Regex.Replace(stroke, $@"{index}", variable);
+            }
+        }
+        return stroke;
     }
+    
 }
