@@ -9,6 +9,7 @@ public class ExpressionHandler
     private bool _correctForSigns;
 
     private bool _correctForParenthesis;
+    private int _counter = 0;
 
     public ExpressionHandler(string expression)
     {
@@ -76,10 +77,16 @@ public class ExpressionHandler
 
         MatchEvaluator matchEvaluator = match =>
         {
-            stack.Push(double.TryParse(match.Value, out var constant)
-                ? new TreeNode(constant)
-                : new TreeNode(match.Value));
-
+            if (double.TryParse(match.Value, out var constant))
+            {
+                _counter++;
+                stack.Push(new TreeNode(constant,level: _counter));
+            }
+            else
+            {
+                _counter++;
+                stack.Push(new TreeNode(match.Value,level:_counter));
+            }
             return "";
         };
 
@@ -116,7 +123,6 @@ public class ExpressionHandler
             var operation = operations.Last().ToString();
             operations = operations.Remove(operations.Length - 1);
             var left = stack.Pop();
-            if (left.Value == "q") Console.WriteLine("aaa");
 
             var node = new TreeNode(operation)
             {

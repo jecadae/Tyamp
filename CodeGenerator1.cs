@@ -5,99 +5,93 @@ namespace ConsoleApp1;
 
 public class CodeGenerator1
 {
-    private readonly StringBuilder _builder;
-    private int _variableCounter;
-    private List<int> _order;
-    private List<string> _variable;
-    public CodeGenerator1()
-    {
-        _builder = new StringBuilder();
-        _variableCounter = 0;
-        _order = new List<int>();
-        _variable = new List<string>();
-    }
-    public void Visit(TreeNode node)
-    {
-        if (node.IsConstant)
+    public static string NextGenCodeGenerator(TreeNode root)
+    { 
+        var code = new StringBuilder();
+        var orderList = root.Flatten();
+        orderList.Reverse();
+        for(var index=2; index < orderList.Count ; index++)
         {
-            GenerateConstant(node);
-        }
-        else if (node.IsVariable)
-        {
-            GenerateVariable(node);
-        }
-        else if (node.IsOperator)
-        {
-            GenerateOperator(node);
-        }
-    }
-
-    private void GenerateConstant(TreeNode node)
-    {
-        _variable.Add(node.Value);
-        _variableCounter++;
-        _builder.AppendLine($"LOAD {node.Value}");
-    }
-
-    private void GenerateVariable(TreeNode node)
-    {
-        if (node.Left == null && node.Right == null)
-        {
-            _variable.Add(node.Value);
-            _order.Add(_variableCounter);
-            string tempVariable = $"{_variableCounter++}";
-            _builder.AppendLine($"STORE {tempVariable}");
-            _builder.AppendLine($"LOAD {node.Value}");
-        }
-    }
-
-    private void GenerateOperator(TreeNode node)
-    {
-
-        if (node.Value == "=")
-        {
-            Visit(node.Right);
-            _builder.AppendLine($"STORE {node.Left.Value}");
-        }
-        else
-        {
-            Visit(node.Left);
-            Visit(node.Right);
-            string rightVariable = _order.Last().ToString();
-            _order.RemoveAt(_order.Count-1);
-            switch (node.Value)
+            if (orderList[index].IsOperator) continue;
+            if (!IsLast(index,orderList))
             {
-                case "+":
-                    _builder.AppendLine($"ADD {rightVariable}");
-                    break;
-                case "*":
-                    _builder.AppendLine($"MPY {rightVariable}");
-                    break;
+                code.AppendLine($"LOAD {orderList[index].Value}");
+                code.AppendLine($"STORE ${orderList[index].Level}");
+            }
+            else
+            {
+                code.AppendLine($"LOAD {orderList[index].Value}");
             }
         }
-    }
-    public string GenerateCode(TreeNode root)
-    {
-        Visit(root);
-        Console.WriteLine("Неоптимизированный код:");
-        Console.WriteLine(_builder.ToString());
-        var stroke = _builder.ToString();
-        foreach (var variable in _variable)
+        
+        orderList.Reverse();
+        for(var ind=2; ind < orderList.Count; ind++)
         {
-            string patt = $@"LOAD {variable}\r\nSTORE (\d+)";
-
-            Regex regex = new Regex(patt);
-
-            var matches = regex.Matches(stroke).ToList().SelectMany(match => match.Groups.Values).ToList();
-            var index = matches.LastOrDefault()?.Value ?? _variableCounter.ToString();
-            if (stroke.Split(variable).Length - 1 == 1)
-            {
-                string pattern = $@"LOAD {variable}\r\nSTORE (\d+)\r\n";
-                stroke = Regex.Replace(stroke, pattern, "");
-                stroke = Regex.Replace(stroke, $@"{index}", variable);
+            if(orderList[ind].IsOperator){
+                switch (orderList[ind].Value)
+                {
+                    case "+":
+                        code.AppendLine($"ADD ${orderList[ind-1].Level}");
+                        break;
+                    case "*":
+                        code.AppendLine($"MPY ${orderList[ind-1].Level}");
+                        break;
+                }
             }
         }
-        return stroke;
+        
+        Console.WriteLine(code.ToString());
+        return code.ToString();
+    }
+
+    public static string OptimizeCode(string code)
+    {
+        bool shouldexit = false;
+        while (!shouldexit)
+        {
+            shouldexit = true;
+            Match a;
+
+            // 3
+            a = Regex.Match(code, @"STORE (.+)\nLOAD \1");
+            if (a.Success) {
+                Match n = Regex.Match(code.Substring(a.Index+a.Length), @"(.*) " + Regex.Escape(a.Groups[1].Value));
+                while (a.Success && (!n.Success || n.Groups[1].Value == "STORE"))
+                {
+                    code = String.Concat(code.Substring(0, a.Index), code.Substring(a.Index + a.Length));
+                    shouldexit = false;
+                    a = Regex.Match(code, @"STORE (.+)\nLOAD \1");
+                    if (a.Success)
+                    {
+                        n = Regex.Match(code.Substring(a.Index + a.Length), @"(.*) " + Regex.Escape(a.Groups[1].Value));
+                    }
+                }
+            }
+            // 4
+                
+            a = Regex.Match(code, @"LOAD (.+)\nSTORE (.+)\n(?=LOAD)((?:.|\s)*?)(?=STORE \2|$)");
+            while (a.Success)
+            {
+                code = String.Concat(code.Substring(0, a.Index), Regex.Replace(a.Groups[3].Value, Regex.Escape(a.Groups[2].Value), a.Groups[1].Value), code.Substring(a.Index + a.Length));
+                shouldexit = false;
+                a = Regex.Match(code, @"LOAD (.+)\nSTORE (.+)\n(?=LOAD)((?:.|\s)*?)(?=STORE \2|$)");
+            }
+                
+            // 1-2 - полезные только если до них идёт STORE b (?)
+                
+            if (Regex.Match(code, @"STORE (.*)\nLOAD (.*)\n(ADD|MPY) \1").Success)
+            {
+                code = Regex.Replace(code, @"STORE (.*)\nLOAD (.*)\n(ADD|MPY) \1", @"$3 $2");
+                shouldexit = false;
+            }
+        }
+        return code;
     }
     
+    private static bool IsLast(int index, IReadOnlyCollection<TreeNode> list)
+    {
+        var sublist = list.Skip(index + 1).Take(list.Count - index).ToList();
+        var nonOperatorNodesCount = sublist.Count(node => !node.IsOperator);
+        return nonOperatorNodesCount == 0;
+    }
 }

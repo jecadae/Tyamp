@@ -2,7 +2,7 @@
 using ConsoleApp1;
 
 //Console.WriteLine("Введите выражение:");
-var expression = "COST = (PRICE+TAX)* 98";
+var expression = "COST = (PRICE+TAX) * 98 + 12";
 var expressionHandler = new ExpressionHandler(expression);
 // Построение бинарного дерева
 try
@@ -12,11 +12,6 @@ try
     // Генерация таблицы имен
     var variableTable = expressionHandler.GenerateVariableTable(tree);
 
-    // Генерация неоптимизированного кода
-    var unoptimizedCode = CodeGenerator.GenerateUnoptimizedCode(tree.Right!);
-    var unopmiz = NewCodeGenerator.GenerateUnOptimaizeCode(tree);
-    var optimizedCode = CodeGenerator.GenerateOptimizedCode(tree);
-
     // Вывод результатов
     Console.WriteLine("Таблица имен:");
     foreach (var variable in variableTable)
@@ -24,10 +19,13 @@ try
         Console.WriteLine(
             $"Номер: {variable.Value.Number}, Идентификатор: {variable.Key}, Тип данных: {variable.Value.DataType}");
     }
-    CodeGenerator1 a = new CodeGenerator1();
-    var str = a.GenerateCode(tree);
-    Console.WriteLine("Оптимизированный код:");
-    Console.WriteLine(str);
+    var b = CodeGenerator1.NextGenCodeGenerator(tree);
+    Console.WriteLine(CodeGenerator1.OptimizeCode(b));
+    // var str = a.GenerateCode(tree);
+    // Console.WriteLine("Оптимизированный код:");
+    // Console.WriteLine(str);
+
+
     // Console.WriteLine(unoptimizedCode);
     // Console.WriteLine("Оптимизированный код:");
     // Console.WriteLine(optimizedCode);
@@ -35,6 +33,7 @@ try
 }
 catch (Exception e) 
 {
+    Console.WriteLine(e);
     Console.WriteLine("Неправильно ввдено выражение.");
 }
 
